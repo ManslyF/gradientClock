@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#000000">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Gradient Clock">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <title>Gradient Clock</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: #000;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+        }
+        
+        #canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+        }
+        
+        @keyframes pulse {
+            0% { filter: brightness(1); }
+            50% { filter: brightness(var(--pulse-intensity)); }
+            100% { filter: brightness(1); }
+        }
+        
+        #timeDisplay {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            color: white;
+            font-size: 40px;
+            font-weight: 300;
+            text-shadow: 2px 2px 8px rgba(0,0,0,0.8);
+            z-index: 10;
+        }
+        
+        #settingsMenu {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(20, 20, 20, 0.95);
+            padding: 30px;
+            border-radius: 15px;
+            color: white;
+            font-size: 18px;
+            z-index: 100;
+            min-width: 300px;
+            max-width: 90vw;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+        }
+        
+        #settingsMenu h2 {
+            margin: 0 0 20px 0;
+            font-size: 24px;
+            text-align: center;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+            padding-bottom: 10px;
+        }
+        
+        .setting-group {
+            margin-bottom: 20px;
+        }
+        
+        .setting-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 14px;
+            opacity: 0.8;
+        }
+        
+        .setting-group select,
+        .setting-group input {
+            width: 100%;
+            padding: 10px;
+            font-size: 16px;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            border-radius: 5px;
+        }
+        
+        .setting-group input[type="range"] {
+            padding: 0;
+        }
+        
+        .range-value {
+            display: inline-block;
+            margin-left: 10px;
+            font-weight: bold;
+        }
+        
+        #closeSettings {
+            width: 100%;
+            padding: 15px;
+            margin-top: 20px;
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        
+        #closeSettings:active {
+            background: rgba(255,255,255,0.3);
+        }
+        
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    <div id="timeDisplay"></div>
+    
+    <div id="settingsMenu" class="hidden">
+        <h2>⚙️ Einstellungen</h2>
+        
+        <div class="setting-group">
+            <label>Minutenfarbe:</label>
+            <select id="minuteColorSelect">
+                <option value="next_hour">Nächste Stundenfarbe</option>
+                <option value="harmonic">Harmonisch (Benachbart)</option>
+            </select>
+        </div>
+        
+        <div class="setting-group">
+            <label>Verlaufsrichtung:</label>
+            <select id="gradientDirectionSelect">
+                <option value="vertical">Vertikal (Oben → Unten)</option>
+                <option value="radial">Radial (Zentrum → Außen)</option>
+            </select>
+        </div>
+        
+        <div class="setting-group">
+            <label>Pulsieren (nur Minuten):</label>
+            <select id="pulseFrequencySelect">
+                <option value="0">Aus</option>
+                <option value="1">Jede Sekunde</option>
+                <option value="2">Alle 2 Sekunden</option>
+                <option value="5">Alle 5 Sekunden</option>
+            </select>
+        </div>
+        
+        <div class="setting-group">
+            <label>Puls-Intensität: <span class="range-value" id="pulseValue">0.0</span></label>
+            <input type="range" id="pulseRange" min="0" max="100" value="0" step="1">
+        </div>
+        
+        <div class="setting-group">
+            <label>Verlaufsschärfe: <span class="range-value" id="sharpnessValue">0.1</span></label>
+            <input type="range" id="sharpnessRange" min="0" max="100" value="10" step="1">
+        </div>
+        
+        <div class="setting-group">
+            <label>Minuten-Helligkeit: <span class="range-value" id="minuteBrightnessValue">1.0</span></label>
+            <input type="range" id="minuteBrightnessRange" min="50" max="150" value="100" step="1">
+        </div>
+        
+        <div class="setting-group">
+            <label>Minuten-Sättigung: <span class="range-value" id="minuteSaturationValue">1.0</span></label>
+            <input type="range" id="minuteSaturationRange" min="50" max="150" value="100" step="1">
+        </div>
+        
+        <div class="setting-group">
+            <label>Sättigung: <span class="range-value" id="satValue">0.7</span></label>
+            <input type="range" id="satRange" min="0" max="100" value="70" step="1">
+        </div>
+        
+        <div class="setting-group">
+            <label>Helligkeit: <span class="range-value" id="lumValue">0.5</span></label>
+            <input type="range" id="lumRange" min="0" max="100" value="50" step="1">
+        </div>
+        
+        <div class="setting-group">
+            <label>Farbverschiebung: <span class="range-value" id="farbvValue">0.55</span></label>
+            <input type="range" id="farbvRange" min="0" max="100" value="55" step="1">
+        </div>
+        
+        <div class="setting-group">
+            <label>Farbrichtung:</label>
+            <select id="reverseColorsSelect">
+                <option value="false">Vorwärts (Normal)</option>
+                <option value="true">Rückwärts (Umgekehrt)</option>
+            </select>
+        </div>
+        
+        <div class="setting-group">
+            <label>Zeitanzeige:</label>
+            <select id="txtimeSelect">
+                <option value="true">Anzeigen</option>
+                <option value="false">Ausblenden</option>
+            </select>
+        </div>
+        
+        <button id="closeSettings">✓ Schließen</button>
+    </div>
+
+    <script>
+        // Service Worker registrieren
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js').then(() => {
+                console.log('Service Worker registriert');
+            }).catch(err => {
+                console.log('Service Worker Fehler:', err);
+            });
+        }
+
+        // ============================================
+        // EINSTELLUNGEN
+        // ============================================
+        const CONFIG = {
+            // TEST-UHRZEIT (null = echte Zeit, oder "14:30" für Tests)
+            testTime: null,  // z.B. "14:30" oder null
+            
+            minuteColor: 'next_hour',    // 'next_hour' oder 'harmonic'
+            gradientDirection: 'vertical', // 'vertical' oder 'radial'
+            pulseFrequency: 0,            // 0 = aus, 1, 2, 5 Sekunden
+            pulseIntensity: 0.0,          // 0.0 = aus, 1.0 = 100% heller
+            
+            // Kontrast-Einstellungen
+            gradientSharpness: 0.1,       // 0.0 = weich, 1.0 = hart
+            minuteBrightness: 1.0,        // 0.5 = dunkler, 1.5 = heller
+            minuteSaturation: 1.0,        // 0.5 = weniger, 1.5 = mehr gesättigt
+            
+            // Farbeinstellungen
+            farbv: 0.55,                  // Farbverschiebung (0.0-1.0)
+            reverseColors: true,          // true = rückwärts, false = vorwärts
+            
+            sat: 0.7,
+            lum: 0.5,
+            txtime: true
+        };
+
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const timeDisplay = document.getElementById('timeDisplay');
+        const settingsMenu = document.getElementById('settingsMenu');
+        
+        let animationId;
+        let lastSecond = -1;
+        let pulseCounter = 0;
+        let pulsePhase = 0; // Für Sinuswelle
+        
+        // CSS-Variablen (nicht mehr gebraucht, aber für Kompatibilität)
+        function updatePulseCSS() {
+            // Leer - wir nutzen jetzt direktes Rendering
+        }
+        updatePulseCSS();
+        
+        // LocalStorage Funktionen
+        function saveSettings() {
+            localStorage.setItem('gradientClockSettings', JSON.stringify(CONFIG));
+            console.log('Einstellungen gespeichert');
+        }
+        
+        function loadSettings() {
+            const saved = localStorage.getItem('gradientClockSettings');
+            if (saved) {
+                const savedConfig = JSON.parse(saved);
+                // testTime NICHT überschreiben - nur für manuelle Tests
+                const currentTestTime = CONFIG.testTime;
+                Object.assign(CONFIG, savedConfig);
+                CONFIG.testTime = currentTestTime;
+                updatePulseCSS();
+                console.log('Einstellungen geladen');
+            }
+        }
+        
+        loadSettings();
+        
+        // Touch-Gesten
+        let touchStartX = 0;
+        let touchStartTime = 0;
+        let lastTapTime = 0;
+        const DOUBLE_TAP_DELAY = 300;
+        
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        
+        // Harmonische Farbe (Benachbart = +20°)
+        function getHarmonicColor(hue) {
+            return (hue + 20 / 360) % 1.0;
+        }
+        
+        // HLS zu RGB
+        function hlsToRgb(h, l, s) {
+            let r, g, b;
+            
+            if (s === 0) {
+                r = g = b = l;
+            } else {
+                const hue2rgb = (p, q, t) => {
+                    if (t < 0) t += 1;
+                    if (t > 1) t -= 1;
+                    if (t < 1/6) return p + (q - p) * 6 * t;
+                    if (t < 1/2) return q;
+                    if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+                    return p;
+                };
+                
+                const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+                const p = 2 * l - q;
+                r = hue2rgb(p, q, h + 1/3);
+                g = hue2rgb(p, q, h);
+                b = hue2rgb(p, q, h - 1/3);
+            }
+            
+            return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+        }
+        
+        function drawClock() {
+            // Zeit ermitteln (Test oder echt)
+            let hour, minute, second;
+            
+            if (CONFIG.testTime) {
+                const parts = CONFIG.testTime.split(':');
+                hour = parseInt(parts[0]);
+                minute = parseInt(parts[1]);
+                second = new Date().getSeconds();
+            } else {
+                const now = new Date();
+                hour = now.getHours();
+                minute = now.getMinutes();
+                second = now.getSeconds();
+            }
+            
+            // Puls-Phase aktualisieren
+            if (CONFIG.pulseFrequency > 0 && CONFIG.pulseIntensity > 0) {
+                if (second !== lastSecond) {
+                    pulseCounter++;
+                }
+                
+                // Berechne Pulsieren als Sinuswelle
+                if (pulseCounter % CONFIG.pulseFrequency === 0) {
+                    pulsePhase = (Date.now() % (CONFIG.pulseFrequency * 1000)) / (CONFIG.pulseFrequency * 1000);
+                } else {
+                    pulsePhase = 0; // Kein Puls
+                }
+            } else {
+                pulsePhase = 0;
+            }
+            lastSecond = second;
+            
+            // Basis-Farbton wie Harmonic Clock (24h-Modus)
+            // Gesamtzeit des Tages als Bruchteil
+            let baseHue = (hour * 3600 + minute * 60 + second) / 86400;
+            
+            // Farbverschiebung und Richtung anwenden
+            baseHue = CONFIG.reverseColors 
+                ? (1.0 - baseHue + CONFIG.farbv) % 1.0 
+                : (baseHue + CONFIG.farbv) % 1.0;
+            
+            // Stundenfarbe = Stunden-Ring Harmonic Clock (baseHue + 40°)
+            const hourHue = (baseHue + 40 / 360) % 1.0;
+            
+            // Minutenfarbe
+            let minuteHue;
+            if (CONFIG.minuteColor === 'next_hour') {
+                // Nächste Stunde = aktueller Stunden-Ring + 1 Stunde
+                const nextBaseHue = ((hour + 1) % 24) * 3600 / 86400;
+                const adjustedNextBase = CONFIG.reverseColors 
+                    ? (1.0 - nextBaseHue + CONFIG.farbv) % 1.0 
+                    : (nextBaseHue + CONFIG.farbv) % 1.0;
+                minuteHue = (adjustedNextBase + 40 / 360) % 1.0;
+            } else {
+                // Harmonisch = Minuten-Ring Harmonic Clock (baseHue + 20°)
+                minuteHue = (baseHue + 20 / 360) % 1.0;
+            }
+            
+            // Sekundenfarbe für Zeitanzeige = Sekunden-Ring Harmonic Clock (baseHue + 0°)
+            const secondHue = baseHue;
+            
+            // Verlaufsposition (0 Min = 0%, 60 Min = 100%)
+            const gradientPosition = minute / 60;
+            
+            // Farben berechnen
+            // Stundenfarbe (Basis für ganzen Canvas)
+            const rgb1 = hlsToRgb(hourHue, CONFIG.lum, CONFIG.sat);
+            
+            // Minutenfarbe mit Pulsieren und angepasster Helligkeit/Sättigung
+            const pulseFactor = 1.0 + (Math.sin(pulsePhase * Math.PI * 2) * CONFIG.pulseIntensity);
+            const minuteLum = CONFIG.lum * CONFIG.minuteBrightness * pulseFactor;
+            const minuteSat = CONFIG.sat * CONFIG.minuteSaturation;
+            const rgb2 = hlsToRgb(minuteHue, Math.min(1, minuteLum), minuteSat);
+            
+            const hourColor = `rgb(${rgb1[0]}, ${rgb1[1]}, ${rgb1[2]})`;
+            
+            // Zuerst kompletten Canvas mit Stundenfarbe füllen
+            ctx.fillStyle = hourColor;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Dann Minutenverlauf darüber (mit Transparenz)
+            if (gradientPosition > 0) {
+                let gradient;
+                
+                if (CONFIG.gradientDirection === 'vertical') {
+                    // Vertikal: Oben → Unten
+                    const height = canvas.height;
+                    gradient = ctx.createLinearGradient(0, 0, 0, height);
+                    
+                    const sharpness = CONFIG.gradientSharpness;
+                    const endPos = gradientPosition;
+                    const startPos = Math.max(0, endPos - sharpness);
+                    
+                    // Oben: volle Minutenfarbe (opak)
+                    gradient.addColorStop(0, `rgba(${rgb2[0]}, ${rgb2[1]}, ${rgb2[2]}, 1)`);
+                    gradient.addColorStop(startPos, `rgba(${rgb2[0]}, ${rgb2[1]}, ${rgb2[2]}, 1)`);
+                    // Am Verlaufsende: transparent
+                    gradient.addColorStop(endPos, `rgba(${rgb2[0]}, ${rgb2[1]}, ${rgb2[2]}, 0)`);
+                    
+                    ctx.fillStyle = gradient;
+                    ctx.fillRect(0, 0, canvas.width, height);
+                } else {
+                    // Radial: Zentrum → Außen
+                    const centerX = canvas.width / 2;
+                    const centerY = canvas.height / 2;
+                    const maxRadius = Math.sqrt(centerX * centerX + centerY * centerY);
+                    
+                    const sharpness = CONFIG.gradientSharpness;
+                    const endPos = gradientPosition;
+                    const startPos = Math.max(0, endPos - sharpness);
+                    
+                    gradient = ctx.createRadialGradient(
+                        centerX, centerY, 0,
+                        centerX, centerY, maxRadius
+                    );
+                    
+                    // Zentrum: volle Minutenfarbe (opak)
+                    gradient.addColorStop(0, `rgba(${rgb2[0]}, ${rgb2[1]}, ${rgb2[2]}, 1)`);
+                    gradient.addColorStop(startPos, `rgba(${rgb2[0]}, ${rgb2[1]}, ${rgb2[2]}, 1)`);
+                    // Am Verlaufsende: transparent
+                    gradient.addColorStop(endPos, `rgba(${rgb2[0]}, ${rgb2[1]}, ${rgb2[2]}, 0)`);
+                    // Weiter außen: bleibt transparent
+                    gradient.addColorStop(1, `rgba(${rgb2[0]}, ${rgb2[1]}, ${rgb2[2]}, 0)`);
+                    
+                    ctx.fillStyle = gradient;
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                }
+            }
+            
+            // Zeitanzeige
+            if (CONFIG.txtime) {
+                const rgbSecond = hlsToRgb(secondHue, CONFIG.lum, CONFIG.sat);
+                const secondColor = `rgb(${rgbSecond[0]}, ${rgbSecond[1]}, ${rgbSecond[2]})`;
+                timeDisplay.style.color = secondColor;
+                timeDisplay.textContent = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+            } else {
+                timeDisplay.textContent = '';
+            }
+        }
+        
+        function animate() {
+            drawClock();
+            animationId = requestAnimationFrame(animate);
+        }
+        
+        window.addEventListener('resize', resizeCanvas);
+        
+        // Tastatur
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'f' || e.key === 'F') {
+                if (!document.fullscreenElement) {
+                    document.documentElement.requestFullscreen();
+                }
+            }
+            if (e.key === 's' || e.key === 'S') {
+                settingsMenu.classList.toggle('hidden');
+            }
+            if (e.key === 'Escape') {
+                if (document.fullscreenElement) {
+                    document.exitFullscreen();
+                }
+                if (!settingsMenu.classList.contains('hidden')) {
+                    settingsMenu.classList.add('hidden');
+                }
+            }
+        });
+        
+        // Touch
+        document.addEventListener('touchstart', (e) => {
+            if (e.target.closest('#settingsMenu')) return;
+            
+            const touch = e.touches[0];
+            touchStartX = touch.clientX;
+            touchStartTime = Date.now();
+        }, { passive: true });
+        
+        document.addEventListener('touchend', (e) => {
+            if (e.target.closest('#settingsMenu')) return;
+            
+            const touch = e.changedTouches[0];
+            const touchEndX = touch.clientX;
+            const touchDuration = Date.now() - touchStartTime;
+            
+            const deltaX = Math.abs(touchStartX - touchEndX);
+            
+            if (deltaX < 30 && touchDuration < 300) {
+                const now = Date.now();
+                const timeSinceLastTap = now - lastTapTime;
+                
+                if (timeSinceLastTap < DOUBLE_TAP_DELAY && timeSinceLastTap > 0) {
+                    settingsMenu.classList.toggle('hidden');
+                    lastTapTime = 0;
+                } else {
+                    lastTapTime = now;
+                }
+            }
+        }, { passive: true });
+        
+        // Settings Event-Listener
+        document.getElementById('closeSettings').addEventListener('click', () => {
+            settingsMenu.classList.add('hidden');
+        });
+        
+        document.getElementById('minuteColorSelect').addEventListener('change', (e) => {
+            CONFIG.minuteColor = e.target.value;
+            saveSettings();
+        });
+        
+        document.getElementById('gradientDirectionSelect').addEventListener('change', (e) => {
+            CONFIG.gradientDirection = e.target.value;
+            saveSettings();
+        });
+        
+        document.getElementById('pulseFrequencySelect').addEventListener('change', (e) => {
+            CONFIG.pulseFrequency = parseInt(e.target.value);
+            pulseCounter = 0; // Reset counter
+            updatePulseCSS();
+            saveSettings();
+        });
+        
+        document.getElementById('pulseRange').addEventListener('input', (e) => {
+            CONFIG.pulseIntensity = e.target.value / 100;
+            document.getElementById('pulseValue').textContent = (e.target.value / 100).toFixed(1);
+            updatePulseCSS();
+            saveSettings();
+        });
+        
+        document.getElementById('sharpnessRange').addEventListener('input', (e) => {
+            CONFIG.gradientSharpness = e.target.value / 100;
+            document.getElementById('sharpnessValue').textContent = (e.target.value / 100).toFixed(2);
+            saveSettings();
+        });
+        
+        document.getElementById('minuteBrightnessRange').addEventListener('input', (e) => {
+            CONFIG.minuteBrightness = e.target.value / 100;
+            document.getElementById('minuteBrightnessValue').textContent = (e.target.value / 100).toFixed(2);
+            saveSettings();
+        });
+        
+        document.getElementById('minuteSaturationRange').addEventListener('input', (e) => {
+            CONFIG.minuteSaturation = e.target.value / 100;
+            document.getElementById('minuteSaturationValue').textContent = (e.target.value / 100).toFixed(2);
+            saveSettings();
+        });
+        
+        document.getElementById('satRange').addEventListener('input', (e) => {
+            CONFIG.sat = e.target.value / 100;
+            document.getElementById('satValue').textContent = (e.target.value / 100).toFixed(2);
+            saveSettings();
+        });
+        
+        document.getElementById('lumRange').addEventListener('input', (e) => {
+            CONFIG.lum = e.target.value / 100;
+            document.getElementById('lumValue').textContent = (e.target.value / 100).toFixed(2);
+            saveSettings();
+        });
+        
+        document.getElementById('farbvRange').addEventListener('input', (e) => {
+            CONFIG.farbv = e.target.value / 100;
+            document.getElementById('farbvValue').textContent = (e.target.value / 100).toFixed(2);
+            saveSettings();
+        });
+        
+        document.getElementById('reverseColorsSelect').addEventListener('change', (e) => {
+            CONFIG.reverseColors = e.target.value === 'true';
+            saveSettings();
+        });
+        
+        document.getElementById('txtimeSelect').addEventListener('change', (e) => {
+            CONFIG.txtime = e.target.value === 'true';
+            saveSettings();
+        });
+        
+        // UI initialisieren
+        function updateUI() {
+            document.getElementById('minuteColorSelect').value = CONFIG.minuteColor;
+            document.getElementById('gradientDirectionSelect').value = CONFIG.gradientDirection;
+            document.getElementById('pulseFrequencySelect').value = CONFIG.pulseFrequency;
+            document.getElementById('pulseRange').value = CONFIG.pulseIntensity * 100;
+            document.getElementById('pulseValue').textContent = CONFIG.pulseIntensity.toFixed(1);
+            document.getElementById('sharpnessRange').value = CONFIG.gradientSharpness * 100;
+            document.getElementById('sharpnessValue').textContent = CONFIG.gradientSharpness.toFixed(2);
+            document.getElementById('minuteBrightnessRange').value = CONFIG.minuteBrightness * 100;
+            document.getElementById('minuteBrightnessValue').textContent = CONFIG.minuteBrightness.toFixed(2);
+            document.getElementById('minuteSaturationRange').value = CONFIG.minuteSaturation * 100;
+            document.getElementById('minuteSaturationValue').textContent = CONFIG.minuteSaturation.toFixed(2);
+            document.getElementById('satRange').value = CONFIG.sat * 100;
+            document.getElementById('satValue').textContent = CONFIG.sat.toFixed(2);
+            document.getElementById('lumRange').value = CONFIG.lum * 100;
+            document.getElementById('lumValue').textContent = CONFIG.lum.toFixed(2);
+            document.getElementById('farbvRange').value = CONFIG.farbv * 100;
+            document.getElementById('farbvValue').textContent = CONFIG.farbv.toFixed(2);
+            document.getElementById('reverseColorsSelect').value = CONFIG.reverseColors.toString();
+            document.getElementById('txtimeSelect').value = CONFIG.txtime.toString();
+        }
+        
+        updateUI();
+        resizeCanvas();
+        animate();
+        
+        console.log('Gradient Clock PWA gestartet');
+    </script>
+</body>
+</html>
