@@ -6,10 +6,10 @@
     <meta name="theme-color" content="#000000">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Gradient Clock">
+    <meta name="apple-mobile-web-app-title" content="Gradient2 Clock">
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="icon-192.png">
-    <title>Gradient Clock</title>
+    <title>Gradient2 Clock</title>
     <style>
         * {
             margin: 0;
@@ -27,12 +27,6 @@
             display: block;
             width: 100vw;
             height: 100vh;
-        }
-        
-        @keyframes pulse {
-            0% { filter: brightness(1); }
-            50% { filter: brightness(var(--pulse-intensity)); }
-            100% { filter: brightness(1); }
         }
         
         #timeDisplay {
@@ -133,14 +127,6 @@
         <h2>⚙️ Einstellungen</h2>
         
         <div class="setting-group">
-            <label>Minutenfarbe:</label>
-            <select id="minuteColorSelect">
-                <option value="next_hour">Nächste Stundenfarbe</option>
-                <option value="harmonic">Harmonisch (Benachbart)</option>
-            </select>
-        </div>
-        
-        <div class="setting-group">
             <label>Verlaufsrichtung:</label>
             <select id="gradientDirectionSelect">
                 <option value="vertical">Vertikal (Oben → Unten)</option>
@@ -229,10 +215,12 @@
             // TEST-UHRZEIT (null = echte Zeit, oder "14:30" für Tests)
             testTime: null,  // z.B. "14:30" oder null
             
-            minuteColor: 'next_hour',    // 'next_hour' oder 'harmonic'
             gradientDirection: 'vertical', // 'vertical' oder 'radial'
             pulseFrequency: 0,            // 0 = aus, 1, 2, 5 Sekunden
             pulseIntensity: 0.0,          // 0.0 = aus, 1.0 = 100% heller
+            
+            // Gradient-Skalierung: >1.0 = Minutenfarbe füllt Canvas früher komplett
+            gradientScale: 1.15,          // 1.0 = original, 1.15 empfohlen
             
             // Kontrast-Einstellungen
             gradientSharpness: 0.1,       // 0.0 = weich, 1.0 = hart
@@ -256,22 +244,28 @@
         let animationId;
         let lastSecond = -1;
         let pulseCounter = 0;
-        let pulsePhase = 0; // Für Sinuswelle
+        let pulsePhase = 0;
         
-        // CSS-Variablen (nicht mehr gebraucht, aber für Kompatibilität)
+        // Pixel Shift (Einbrenn-Schutz)
+        let lastMinute = -1;
+        let pixelShiftX = 0;
+        let pixelShiftY = 0;
+        const PIXEL_SHIFT_RADIUS = 8;
+        
+        // CSS-Variablen (für Kompatibilität)
         function updatePulseCSS() {
-            // Leer - wir nutzen jetzt direktes Rendering
+            // Leer - wir nutzen direktes Rendering
         }
         updatePulseCSS();
         
         // LocalStorage Funktionen
         function saveSettings() {
-            localStorage.setItem('gradientClockSettings', JSON.stringify(CONFIG));
+            localStorage.setItem('gradient2ClockSettings', JSON.stringify(CONFIG));
             console.log('Einstellungen gespeichert');
         }
         
         function loadSettings() {
-            const saved = localStorage.getItem('gradientClockSettings');
+            const saved = localStorage.getItem('gradient2ClockSettings');
             if (saved) {
                 const savedConfig = JSON.parse(saved);
                 // testTime NICHT überschreiben - nur für manuelle Tests
@@ -294,11 +288,6 @@
         function resizeCanvas() {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
-        }
-        
-        // Harmonische Farbe (Benachbart = +20°)
-        function getHarmonicColor(hue) {
-            return (hue + 20 / 360) % 1.0;
         }
         
         // HLS zu RGB
@@ -349,48 +338,46 @@
                     pulseCounter++;
                 }
                 
-                // Berechne Pulsieren als Sinuswelle
                 if (pulseCounter % CONFIG.pulseFrequency === 0) {
                     pulsePhase = (Date.now() % (CONFIG.pulseFrequency * 1000)) / (CONFIG.pulseFrequency * 1000);
                 } else {
-                    pulsePhase = 0; // Kein Puls
+                    pulsePhase = 0;
                 }
             } else {
                 pulsePhase = 0;
             }
             lastSecond = second;
             
-            // Basis-Farbton wie Harmonic Clock (24h-Modus)
-            // Gesamtzeit des Tages als Bruchteil
-            let baseHue = (hour * 3600 + minute * 60 + second) / 86400;
+            // === NEUE LOGIK: Stundenfarbe fest, Minutenfarbe gleitet ===
+            
+            // Stundenfarbe: FEST während der gesamten Stunde
+            // 1 Stunde = 15° im Farbkreis (360° / 24h = 15°)
+            let hourHue = hour / 24;  // 0.0 - 1.0
             
             // Farbverschiebung und Richtung anwenden
-            baseHue = CONFIG.reverseColors 
-                ? (1.0 - baseHue + CONFIG.farbv) % 1.0 
-                : (baseHue + CONFIG.farbv) % 1.0;
+            hourHue = CONFIG.reverseColors 
+                ? (1.0 - hourHue + CONFIG.farbv) % 1.0 
+                : (hourHue + CONFIG.farbv) % 1.0;
             
-            // Stundenfarbe = Stunden-Ring Harmonic Clock (baseHue + 40°)
-            const hourHue = (baseHue + 40 / 360) % 1.0;
+            // Minutenfarbe: GLEITET von aktueller Stunde zur nächsten
+            // Bei Minute 0 = Stundenfarbe
+            // Bei Minute 60 = Nächste Stundenfarbe
+            const minuteProgress = minute / 60;  // 0.0 - 1.0
+            let minuteHue = (hour + minuteProgress) / 24;  // Gleitet zur nächsten Stunde
             
-            // Minutenfarbe
-            let minuteHue;
-            if (CONFIG.minuteColor === 'next_hour') {
-                // Nächste Stunde = aktueller Stunden-Ring + 1 Stunde
-                const nextBaseHue = ((hour + 1) % 24) * 3600 / 86400;
-                const adjustedNextBase = CONFIG.reverseColors 
-                    ? (1.0 - nextBaseHue + CONFIG.farbv) % 1.0 
-                    : (nextBaseHue + CONFIG.farbv) % 1.0;
-                minuteHue = (adjustedNextBase + 40 / 360) % 1.0;
-            } else {
-                // Harmonisch = Minuten-Ring Harmonic Clock (baseHue + 20°)
-                minuteHue = (baseHue + 20 / 360) % 1.0;
-            }
+            // Farbverschiebung und Richtung anwenden
+            minuteHue = CONFIG.reverseColors 
+                ? (1.0 - minuteHue + CONFIG.farbv) % 1.0 
+                : (minuteHue + CONFIG.farbv) % 1.0;
             
-            // Sekundenfarbe für Zeitanzeige = Sekunden-Ring Harmonic Clock (baseHue + 0°)
-            const secondHue = baseHue;
+            // Sekundenfarbe für Zeitanzeige (wie Gradient1)
+            let secondHue = (hour * 3600 + minute * 60 + second) / 86400;
+            secondHue = CONFIG.reverseColors
+                ? (1.0 - secondHue + CONFIG.farbv) % 1.0
+                : (secondHue + CONFIG.farbv) % 1.0;
             
-            // Verlaufsposition (0 Min = 0%, 60 Min = 100%)
-            const gradientPosition = minute / 60;
+            // Verlaufsposition (skaliert, damit xx:59 den Canvas weitgehend füllt)
+            const gradientPosition = (minute / 60) * CONFIG.gradientScale;
             
             // Farben berechnen
             // Stundenfarbe (Basis für ganzen Canvas)
@@ -418,14 +405,14 @@
                     gradient = ctx.createLinearGradient(0, 0, 0, height);
                     
                     const sharpness = CONFIG.gradientSharpness;
-                    const endPos = gradientPosition;
+                    const endPos = Math.min(1.0, gradientPosition);
                     const startPos = Math.max(0, endPos - sharpness);
                     
                     // Oben: volle Minutenfarbe (opak)
                     gradient.addColorStop(0, `rgba(${rgb2[0]}, ${rgb2[1]}, ${rgb2[2]}, 1)`);
-                    gradient.addColorStop(startPos, `rgba(${rgb2[0]}, ${rgb2[1]}, ${rgb2[2]}, 1)`);
-                    // Am Verlaufsende: transparent
-                    gradient.addColorStop(endPos, `rgba(${rgb2[0]}, ${rgb2[1]}, ${rgb2[2]}, 0)`);
+                    if (startPos > 0) gradient.addColorStop(startPos, `rgba(${rgb2[0]}, ${rgb2[1]}, ${rgb2[2]}, 1)`);
+                    // Am Verlaufsende: transparent (oder opak wenn geclampt)
+                    gradient.addColorStop(endPos, `rgba(${rgb2[0]}, ${rgb2[1]}, ${rgb2[2]}, ${gradientPosition >= 1.0 ? 1 : 0})`);
                     
                     ctx.fillStyle = gradient;
                     ctx.fillRect(0, 0, canvas.width, height);
@@ -436,7 +423,7 @@
                     const maxRadius = Math.sqrt(centerX * centerX + centerY * centerY);
                     
                     const sharpness = CONFIG.gradientSharpness;
-                    const endPos = gradientPosition;
+                    const endPos = Math.min(1.0, gradientPosition);
                     const startPos = Math.max(0, endPos - sharpness);
                     
                     gradient = ctx.createRadialGradient(
@@ -446,11 +433,11 @@
                     
                     // Zentrum: volle Minutenfarbe (opak)
                     gradient.addColorStop(0, `rgba(${rgb2[0]}, ${rgb2[1]}, ${rgb2[2]}, 1)`);
-                    gradient.addColorStop(startPos, `rgba(${rgb2[0]}, ${rgb2[1]}, ${rgb2[2]}, 1)`);
-                    // Am Verlaufsende: transparent
-                    gradient.addColorStop(endPos, `rgba(${rgb2[0]}, ${rgb2[1]}, ${rgb2[2]}, 0)`);
+                    if (startPos > 0) gradient.addColorStop(startPos, `rgba(${rgb2[0]}, ${rgb2[1]}, ${rgb2[2]}, 1)`);
+                    // Am Verlaufsende: transparent (oder opak wenn geclampt)
+                    gradient.addColorStop(endPos, `rgba(${rgb2[0]}, ${rgb2[1]}, ${rgb2[2]}, ${gradientPosition >= 1.0 ? 1 : 0})`);
                     // Weiter außen: bleibt transparent
-                    gradient.addColorStop(1, `rgba(${rgb2[0]}, ${rgb2[1]}, ${rgb2[2]}, 0)`);
+                    if (endPos < 1.0) gradient.addColorStop(1, `rgba(${rgb2[0]}, ${rgb2[1]}, ${rgb2[2]}, 0)`);
                     
                     ctx.fillStyle = gradient;
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -459,9 +446,17 @@
             
             // Zeitanzeige
             if (CONFIG.txtime) {
+                // Pixel Shift: bei jedem Minutenwechsel neue zufällige Verschiebung
+                if (minute !== lastMinute) {
+                    pixelShiftX = Math.round((Math.random() * 2 - 1) * PIXEL_SHIFT_RADIUS);
+                    pixelShiftY = Math.round((Math.random() * 2 - 1) * PIXEL_SHIFT_RADIUS);
+                    lastMinute = minute;
+                }
                 const rgbSecond = hlsToRgb(secondHue, CONFIG.lum, CONFIG.sat);
                 const secondColor = `rgb(${rgbSecond[0]}, ${rgbSecond[1]}, ${rgbSecond[2]})`;
                 timeDisplay.style.color = secondColor;
+                timeDisplay.style.top = `${20 + pixelShiftY}px`;
+                timeDisplay.style.right = `${20 - pixelShiftX}px`;
                 timeDisplay.textContent = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
             } else {
                 timeDisplay.textContent = '';
@@ -531,11 +526,6 @@
             settingsMenu.classList.add('hidden');
         });
         
-        document.getElementById('minuteColorSelect').addEventListener('change', (e) => {
-            CONFIG.minuteColor = e.target.value;
-            saveSettings();
-        });
-        
         document.getElementById('gradientDirectionSelect').addEventListener('change', (e) => {
             CONFIG.gradientDirection = e.target.value;
             saveSettings();
@@ -543,7 +533,7 @@
         
         document.getElementById('pulseFrequencySelect').addEventListener('change', (e) => {
             CONFIG.pulseFrequency = parseInt(e.target.value);
-            pulseCounter = 0; // Reset counter
+            pulseCounter = 0;
             updatePulseCSS();
             saveSettings();
         });
@@ -603,7 +593,6 @@
         
         // UI initialisieren
         function updateUI() {
-            document.getElementById('minuteColorSelect').value = CONFIG.minuteColor;
             document.getElementById('gradientDirectionSelect').value = CONFIG.gradientDirection;
             document.getElementById('pulseFrequencySelect').value = CONFIG.pulseFrequency;
             document.getElementById('pulseRange').value = CONFIG.pulseIntensity * 100;
@@ -628,7 +617,7 @@
         resizeCanvas();
         animate();
         
-        console.log('Gradient Clock PWA gestartet');
+        console.log('Gradient2 Clock PWA gestartet');
     </script>
 </body>
 </html>
