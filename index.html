@@ -155,6 +155,11 @@
         </div>
         
         <div class="setting-group">
+            <label>Verlaufsende (Alpha): <span class="range-value" id="endGradientValue">0.0</span></label>
+            <input type="range" id="endGradientRange" min="0" max="100" value="0" step="1">
+        </div>
+        
+        <div class="setting-group">
             <label>Minuten-Helligkeit: <span class="range-value" id="minuteBrightnessValue">1.0</span></label>
             <input type="range" id="minuteBrightnessRange" min="50" max="150" value="100" step="1">
         </div>
@@ -219,11 +224,9 @@
             pulseFrequency: 0,            // 0 = aus, 1, 2, 5 Sekunden
             pulseIntensity: 0.0,          // 0.0 = aus, 1.0 = 100% heller
             
-            // Gradient-Skalierung: >1.0 = Minutenfarbe füllt Canvas früher komplett
-            gradientScale: 1.15,          // 1.0 = original, 1.15 empfohlen
-            
             // Kontrast-Einstellungen
             gradientSharpness: 0.1,       // 0.0 = weich, 1.0 = hart
+            endGradientValue: 0.0,        // Alpha am Verlaufsende (0.0 = transparent, 1.0 = opak)
             minuteBrightness: 1.0,        // 0.5 = dunkler, 1.5 = heller
             minuteSaturation: 1.0,        // 0.5 = weniger, 1.5 = mehr gesättigt
             
@@ -376,8 +379,8 @@
                 ? (1.0 - secondHue + CONFIG.farbv) % 1.0
                 : (secondHue + CONFIG.farbv) % 1.0;
             
-            // Verlaufsposition (skaliert, damit xx:59 den Canvas weitgehend füllt)
-            const gradientPosition = (minute / 60) * CONFIG.gradientScale;
+            // Verlaufsposition (0 Min = 0%, 60 Min = 100%)
+            const gradientPosition = minute / 60;
             
             // Farben berechnen
             // Stundenfarbe (Basis für ganzen Canvas)
@@ -405,14 +408,14 @@
                     gradient = ctx.createLinearGradient(0, 0, 0, height);
                     
                     const sharpness = CONFIG.gradientSharpness;
-                    const endPos = Math.min(1.0, gradientPosition);
+                    const endPos = gradientPosition;
                     const startPos = Math.max(0, endPos - sharpness);
                     
                     // Oben: volle Minutenfarbe (opak)
                     gradient.addColorStop(0, `rgba(${rgb2[0]}, ${rgb2[1]}, ${rgb2[2]}, 1)`);
-                    if (startPos > 0) gradient.addColorStop(startPos, `rgba(${rgb2[0]}, ${rgb2[1]}, ${rgb2[2]}, 1)`);
-                    // Am Verlaufsende: transparent (oder opak wenn geclampt)
-                    gradient.addColorStop(endPos, `rgba(${rgb2[0]}, ${rgb2[1]}, ${rgb2[2]}, ${gradientPosition >= 1.0 ? 1 : 0})`);
+                    gradient.addColorStop(startPos, `rgba(${rgb2[0]}, ${rgb2[1]}, ${rgb2[2]}, 1)`);
+                    // Am Verlaufsende: transparent
+                    gradient.addColorStop(endPos, `rgba(${rgb2[0]}, ${rgb2[1]}, ${rgb2[2]}, ${CONFIG.endGradientValue})`);
                     
                     ctx.fillStyle = gradient;
                     ctx.fillRect(0, 0, canvas.width, height);
@@ -423,7 +426,7 @@
                     const maxRadius = Math.sqrt(centerX * centerX + centerY * centerY);
                     
                     const sharpness = CONFIG.gradientSharpness;
-                    const endPos = Math.min(1.0, gradientPosition);
+                    const endPos = gradientPosition;
                     const startPos = Math.max(0, endPos - sharpness);
                     
                     gradient = ctx.createRadialGradient(
@@ -433,11 +436,11 @@
                     
                     // Zentrum: volle Minutenfarbe (opak)
                     gradient.addColorStop(0, `rgba(${rgb2[0]}, ${rgb2[1]}, ${rgb2[2]}, 1)`);
-                    if (startPos > 0) gradient.addColorStop(startPos, `rgba(${rgb2[0]}, ${rgb2[1]}, ${rgb2[2]}, 1)`);
-                    // Am Verlaufsende: transparent (oder opak wenn geclampt)
-                    gradient.addColorStop(endPos, `rgba(${rgb2[0]}, ${rgb2[1]}, ${rgb2[2]}, ${gradientPosition >= 1.0 ? 1 : 0})`);
+                    gradient.addColorStop(startPos, `rgba(${rgb2[0]}, ${rgb2[1]}, ${rgb2[2]}, 1)`);
+                    // Am Verlaufsende: transparent
+                    gradient.addColorStop(endPos, `rgba(${rgb2[0]}, ${rgb2[1]}, ${rgb2[2]}, ${CONFIG.endGradientValue})`);
                     // Weiter außen: bleibt transparent
-                    if (endPos < 1.0) gradient.addColorStop(1, `rgba(${rgb2[0]}, ${rgb2[1]}, ${rgb2[2]}, 0)`);
+                    gradient.addColorStop(1, `rgba(${rgb2[0]}, ${rgb2[1]}, ${rgb2[2]}, ${CONFIG.endGradientValue})`);
                     
                     ctx.fillStyle = gradient;
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -551,6 +554,12 @@
             saveSettings();
         });
         
+        document.getElementById('endGradientRange').addEventListener('input', (e) => {
+            CONFIG.endGradientValue = e.target.value / 100;
+            document.getElementById('endGradientValue').textContent = (e.target.value / 100).toFixed(2);
+            saveSettings();
+        });
+        
         document.getElementById('minuteBrightnessRange').addEventListener('input', (e) => {
             CONFIG.minuteBrightness = e.target.value / 100;
             document.getElementById('minuteBrightnessValue').textContent = (e.target.value / 100).toFixed(2);
@@ -599,6 +608,8 @@
             document.getElementById('pulseValue').textContent = CONFIG.pulseIntensity.toFixed(1);
             document.getElementById('sharpnessRange').value = CONFIG.gradientSharpness * 100;
             document.getElementById('sharpnessValue').textContent = CONFIG.gradientSharpness.toFixed(2);
+            document.getElementById('endGradientRange').value = (CONFIG.endGradientValue || 0) * 100;
+            document.getElementById('endGradientValue').textContent = (CONFIG.endGradientValue || 0).toFixed(2);
             document.getElementById('minuteBrightnessRange').value = CONFIG.minuteBrightness * 100;
             document.getElementById('minuteBrightnessValue').textContent = CONFIG.minuteBrightness.toFixed(2);
             document.getElementById('minuteSaturationRange').value = CONFIG.minuteSaturation * 100;
