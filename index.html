@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -98,6 +98,22 @@
             font-weight: bold;
         }
         
+        #resetSettings {
+            width: 100%;
+            padding: 15px;
+            margin-top: 20px;
+            background: rgba(255,100,100,0.2);
+            border: none;
+            color: white;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        
+        #resetSettings:active {
+            background: rgba(255,100,100,0.35);
+        }
+        
         #closeSettings {
             width: 100%;
             padding: 15px;
@@ -124,120 +140,116 @@
     <div id="timeDisplay"></div>
     
     <div id="settingsMenu" class="hidden">
-        <h2>⚙️ Einstellungen</h2>
+        <h2>⚙️ Settings</h2>
         
         <div class="setting-group">
-            <label>Verlaufsrichtung:</label>
+            <label>Gradient direction:</label>
             <select id="gradientDirectionSelect">
-                <option value="vertical">Vertikal (Oben → Unten)</option>
-                <option value="radial">Radial (Zentrum → Außen)</option>
+                <option value="vertical">Vertical (Top → Bottom)</option>
+                <option value="radial">Radial (Center → Outside)</option>
             </select>
         </div>
         
         <div class="setting-group">
-            <label>Pulsieren (nur Minuten):</label>
+            <label>Pulse (minutes only):</label>
             <select id="pulseFrequencySelect">
-                <option value="0">Aus</option>
-                <option value="1">Jede Sekunde</option>
-                <option value="2">Alle 2 Sekunden</option>
-                <option value="5">Alle 5 Sekunden</option>
+                <option value="0">Off</option>
+                <option value="1">Every second</option>
+                <option value="2">Every 2 seconds</option>
+                <option value="5">Every 5 seconds</option>
             </select>
         </div>
         
         <div class="setting-group">
-            <label>Puls-Intensität: <span class="range-value" id="pulseValue">0.0</span></label>
+            <label>Pulse intensity: <span class="range-value" id="pulseValue">0.0</span></label>
             <input type="range" id="pulseRange" min="0" max="100" value="0" step="1">
         </div>
         
         <div class="setting-group">
-            <label>Verlaufsschärfe: <span class="range-value" id="sharpnessValue">0.1</span></label>
-            <input type="range" id="sharpnessRange" min="0" max="100" value="10" step="1">
+            <label>Gradient sharpness: <span class="range-value" id="sharpnessValue">0.30</span></label>
+            <input type="range" id="sharpnessRange" min="0" max="100" value="30" step="1">
         </div>
         
         <div class="setting-group">
-            <label>Verlaufsende (Alpha): <span class="range-value" id="endGradientValue">0.0</span></label>
-            <input type="range" id="endGradientRange" min="0" max="100" value="0" step="1">
+            <label>Gradient end (alpha): <span class="range-value" id="endGradientValue">0.10</span></label>
+            <input type="range" id="endGradientRange" min="0" max="100" value="10" step="1">
         </div>
         
         <div class="setting-group">
-            <label>Minuten-Helligkeit: <span class="range-value" id="minuteBrightnessValue">1.0</span></label>
-            <input type="range" id="minuteBrightnessRange" min="50" max="150" value="100" step="1">
+            <label>Minute brightness: <span class="range-value" id="minuteBrightnessValue">0.70</span></label>
+            <input type="range" id="minuteBrightnessRange" min="50" max="150" value="70" step="1">
         </div>
         
         <div class="setting-group">
-            <label>Minuten-Sättigung: <span class="range-value" id="minuteSaturationValue">1.0</span></label>
-            <input type="range" id="minuteSaturationRange" min="50" max="150" value="100" step="1">
+            <label>Minute saturation: <span class="range-value" id="minuteSaturationValue">1.50</span></label>
+            <input type="range" id="minuteSaturationRange" min="50" max="150" value="150" step="1">
         </div>
         
         <div class="setting-group">
-            <label>Sättigung: <span class="range-value" id="satValue">0.7</span></label>
-            <input type="range" id="satRange" min="0" max="100" value="70" step="1">
+            <label>Saturation: <span class="range-value" id="satValue">0.80</span></label>
+            <input type="range" id="satRange" min="0" max="100" value="80" step="1">
         </div>
         
         <div class="setting-group">
-            <label>Helligkeit: <span class="range-value" id="lumValue">0.5</span></label>
-            <input type="range" id="lumRange" min="0" max="100" value="50" step="1">
+            <label>Brightness: <span class="range-value" id="lumValue">0.40</span></label>
+            <input type="range" id="lumRange" min="0" max="100" value="40" step="1">
         </div>
         
         <div class="setting-group">
-            <label>Farbverschiebung: <span class="range-value" id="farbvValue">0.55</span></label>
-            <input type="range" id="farbvRange" min="0" max="100" value="55" step="1">
+            <label>Color offset: <span class="range-value" id="farbvValue">0.67</span></label>
+            <input type="range" id="farbvRange" min="0" max="100" value="67" step="1">
         </div>
         
         <div class="setting-group">
-            <label>Farbrichtung:</label>
+            <label>Color direction:</label>
             <select id="reverseColorsSelect">
-                <option value="false">Vorwärts (Normal)</option>
-                <option value="true">Rückwärts (Umgekehrt)</option>
+                <option value="false">Forward (normal)</option>
+                <option value="true">Reverse</option>
             </select>
         </div>
         
         <div class="setting-group">
-            <label>Zeitanzeige:</label>
+            <label>Time display:</label>
             <select id="txtimeSelect">
-                <option value="true">Anzeigen</option>
-                <option value="false">Ausblenden</option>
+                <option value="true">Show</option>
+                <option value="false">Hide</option>
             </select>
         </div>
         
-        <button id="closeSettings">✓ Schließen</button>
+        <button id="resetSettings">↺ Reset to defaults</button>
+        <button id="closeSettings">✓ Close</button>
     </div>
 
     <script>
-        // Service Worker registrieren
+        // Register service worker
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('sw.js').then(() => {
-                console.log('Service Worker registriert');
+                console.log('Service worker registered');
             }).catch(err => {
-                console.log('Service Worker Fehler:', err);
+                console.log('Service worker error:', err);
             });
         }
 
         // ============================================
-        // EINSTELLUNGEN
+        // SETTINGS
         // ============================================
-        const CONFIG = {
-            // TEST-UHRZEIT (null = echte Zeit, oder "14:30" für Tests)
-            testTime: null,  // z.B. "14:30" oder null
-            
-            gradientDirection: 'vertical', // 'vertical' oder 'radial'
-            pulseFrequency: 0,            // 0 = aus, 1, 2, 5 Sekunden
-            pulseIntensity: 0.0,          // 0.0 = aus, 1.0 = 100% heller
-            
-            // Kontrast-Einstellungen
-            gradientSharpness: 0.1,       // 0.0 = weich, 1.0 = hart
-            endGradientValue: 0.0,        // Alpha am Verlaufsende (0.0 = transparent, 1.0 = opak)
-            minuteBrightness: 1.0,        // 0.5 = dunkler, 1.5 = heller
-            minuteSaturation: 1.0,        // 0.5 = weniger, 1.5 = mehr gesättigt
-            
-            // Farbeinstellungen
-            farbv: 0.55,                  // Farbverschiebung (0.0-1.0)
-            reverseColors: true,          // true = rückwärts, false = vorwärts
-            
-            sat: 0.7,
-            lum: 0.5,
+        const DEFAULTS = {
+            testTime: null,              // e.g. "14:30" or null for real time
+            gradientDirection: 'vertical', // 'vertical' or 'radial'
+            pulseFrequency: 0,           // 0 = off, 1, 2, 5 seconds
+            pulseIntensity: 0.0,         // 0.0 = off, 1.0 = 100% brighter
+            gradientSharpness: 0.3,      // 0.0 = soft, 1.0 = hard
+            endGradientValue: 0.1,       // alpha at gradient end (0.0 = transparent, 1.0 = opaque)
+            minuteBrightness: 0.7,       // 0.5 = darker, 1.5 = brighter
+            minuteSaturation: 1.5,       // 0.5 = less, 1.5 = more saturated
+            farbv: 0.67,                 // color offset (0.0-1.0)
+            reverseColors: true,         // true = reverse, false = forward
+            sat: 0.8,
+            lum: 0.4,
             txtime: true
         };
+
+        const CONFIG = Object.assign({}, DEFAULTS);
 
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
@@ -249,40 +261,38 @@
         let pulseCounter = 0;
         let pulsePhase = 0;
         
-        // Pixel Shift (Einbrenn-Schutz)
+        // Pixel shift (burn-in protection)
         let lastMinute = -1;
         let pixelShiftX = 0;
         let pixelShiftY = 0;
         const PIXEL_SHIFT_RADIUS = 8;
         
-        // CSS-Variablen (für Kompatibilität)
-        function updatePulseCSS() {
-            // Leer - wir nutzen direktes Rendering
-        }
+        // No-op kept for compatibility
+        function updatePulseCSS() {}
         updatePulseCSS();
         
-        // LocalStorage Funktionen
+        // LocalStorage
         function saveSettings() {
             localStorage.setItem('gradient2ClockSettings', JSON.stringify(CONFIG));
-            console.log('Einstellungen gespeichert');
+            console.log('Settings saved');
         }
         
         function loadSettings() {
             const saved = localStorage.getItem('gradient2ClockSettings');
             if (saved) {
                 const savedConfig = JSON.parse(saved);
-                // testTime NICHT überschreiben - nur für manuelle Tests
+                // Do not overwrite testTime — for manual testing only
                 const currentTestTime = CONFIG.testTime;
                 Object.assign(CONFIG, savedConfig);
                 CONFIG.testTime = currentTestTime;
                 updatePulseCSS();
-                console.log('Einstellungen geladen');
+                console.log('Settings loaded');
             }
         }
         
         loadSettings();
         
-        // Touch-Gesten
+        // Touch gestures
         let touchStartX = 0;
         let touchStartTime = 0;
         let lastTapTime = 0;
@@ -293,7 +303,7 @@
             canvas.height = window.innerHeight;
         }
         
-        // HLS zu RGB
+        // HLS to RGB
         function hlsToRgb(h, l, s) {
             let r, g, b;
             
@@ -320,7 +330,7 @@
         }
         
         function drawClock() {
-            // Zeit ermitteln (Test oder echt)
+            // Get current time (test or real)
             let hour, minute, second;
             
             if (CONFIG.testTime) {
@@ -335,7 +345,7 @@
                 second = now.getSeconds();
             }
             
-            // Puls-Phase aktualisieren
+            // Update pulse phase
             if (CONFIG.pulseFrequency > 0 && CONFIG.pulseIntensity > 0) {
                 if (second !== lastSecond) {
                     pulseCounter++;
@@ -351,42 +361,38 @@
             }
             lastSecond = second;
             
-            // === NEUE LOGIK: Stundenfarbe fest, Minutenfarbe gleitet ===
-            
-            // Stundenfarbe: FEST während der gesamten Stunde
-            // 1 Stunde = 15° im Farbkreis (360° / 24h = 15°)
+            // Hour color: fixed for the entire hour (1 hour = 15° on the color wheel, 360° / 24h)
             let hourHue = hour / 24;  // 0.0 - 1.0
             
-            // Farbverschiebung und Richtung anwenden
+            // Apply color offset and direction
             hourHue = CONFIG.reverseColors 
                 ? (1.0 - hourHue + CONFIG.farbv) % 1.0 
                 : (hourHue + CONFIG.farbv) % 1.0;
             
-            // Minutenfarbe: GLEITET von aktueller Stunde zur nächsten
-            // Bei Minute 0 = Stundenfarbe
-            // Bei Minute 60 = Nächste Stundenfarbe
+            // Minute color: slides from current hour hue toward next hour hue
+            // At minute 0 = hour color, at minute 60 = next hour color
             const minuteProgress = minute / 60;  // 0.0 - 1.0
-            let minuteHue = (hour + minuteProgress) / 24;  // Gleitet zur nächsten Stunde
+            let minuteHue = (hour + minuteProgress) / 24;
             
-            // Farbverschiebung und Richtung anwenden
+            // Apply color offset and direction
             minuteHue = CONFIG.reverseColors 
                 ? (1.0 - minuteHue + CONFIG.farbv) % 1.0 
                 : (minuteHue + CONFIG.farbv) % 1.0;
             
-            // Sekundenfarbe für Zeitanzeige (wie Gradient1)
+            // Second hue for time display
             let secondHue = (hour * 3600 + minute * 60 + second) / 86400;
             secondHue = CONFIG.reverseColors
                 ? (1.0 - secondHue + CONFIG.farbv) % 1.0
                 : (secondHue + CONFIG.farbv) % 1.0;
             
-            // Verlaufsposition (0 Min = 0%, 60 Min = 100%)
+            // Gradient position (minute 0 = 0%, minute 60 = 100%)
             const gradientPosition = minute / 60;
             
-            // Farben berechnen
-            // Stundenfarbe (Basis für ganzen Canvas)
+            // Calculate colors
+            // Hour color (base fill for entire canvas)
             const rgb1 = hlsToRgb(hourHue, CONFIG.lum, CONFIG.sat);
             
-            // Minutenfarbe mit Pulsieren und angepasster Helligkeit/Sättigung
+            // Minute color with pulse and adjusted brightness/saturation
             const pulseFactor = 1.0 + (Math.sin(pulsePhase * Math.PI * 2) * CONFIG.pulseIntensity);
             const minuteLum = CONFIG.lum * CONFIG.minuteBrightness * pulseFactor;
             const minuteSat = CONFIG.sat * CONFIG.minuteSaturation;
@@ -394,16 +400,16 @@
             
             const hourColor = `rgb(${rgb1[0]}, ${rgb1[1]}, ${rgb1[2]})`;
             
-            // Zuerst kompletten Canvas mit Stundenfarbe füllen
+            // Fill entire canvas with hour color
             ctx.fillStyle = hourColor;
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             
-            // Dann Minutenverlauf darüber (mit Transparenz)
+            // Overlay minute gradient (with transparency)
             if (gradientPosition > 0) {
                 let gradient;
                 
                 if (CONFIG.gradientDirection === 'vertical') {
-                    // Vertikal: Oben → Unten
+                    // Vertical: top → bottom
                     const height = canvas.height;
                     gradient = ctx.createLinearGradient(0, 0, 0, height);
                     
@@ -411,16 +417,16 @@
                     const endPos = gradientPosition;
                     const startPos = Math.max(0, endPos - sharpness);
                     
-                    // Oben: volle Minutenfarbe (opak)
+                    // Top: full minute color (opaque)
                     gradient.addColorStop(0, `rgba(${rgb2[0]}, ${rgb2[1]}, ${rgb2[2]}, 1)`);
                     gradient.addColorStop(startPos, `rgba(${rgb2[0]}, ${rgb2[1]}, ${rgb2[2]}, 1)`);
-                    // Am Verlaufsende: transparent
+                    // Gradient end
                     gradient.addColorStop(endPos, `rgba(${rgb2[0]}, ${rgb2[1]}, ${rgb2[2]}, ${CONFIG.endGradientValue})`);
                     
                     ctx.fillStyle = gradient;
                     ctx.fillRect(0, 0, canvas.width, height);
                 } else {
-                    // Radial: Zentrum → Außen
+                    // Radial: center → outside
                     const centerX = canvas.width / 2;
                     const centerY = canvas.height / 2;
                     const maxRadius = Math.sqrt(centerX * centerX + centerY * centerY);
@@ -434,12 +440,12 @@
                         centerX, centerY, maxRadius
                     );
                     
-                    // Zentrum: volle Minutenfarbe (opak)
+                    // Center: full minute color (opaque)
                     gradient.addColorStop(0, `rgba(${rgb2[0]}, ${rgb2[1]}, ${rgb2[2]}, 1)`);
                     gradient.addColorStop(startPos, `rgba(${rgb2[0]}, ${rgb2[1]}, ${rgb2[2]}, 1)`);
-                    // Am Verlaufsende: transparent
+                    // Gradient end
                     gradient.addColorStop(endPos, `rgba(${rgb2[0]}, ${rgb2[1]}, ${rgb2[2]}, ${CONFIG.endGradientValue})`);
-                    // Weiter außen: bleibt transparent
+                    // Beyond gradient end: stays at end alpha
                     gradient.addColorStop(1, `rgba(${rgb2[0]}, ${rgb2[1]}, ${rgb2[2]}, ${CONFIG.endGradientValue})`);
                     
                     ctx.fillStyle = gradient;
@@ -447,9 +453,9 @@
                 }
             }
             
-            // Zeitanzeige
+            // Time display with pixel shift
             if (CONFIG.txtime) {
-                // Pixel Shift: bei jedem Minutenwechsel neue zufällige Verschiebung
+                // Pixel shift: new random offset on each minute change
                 if (minute !== lastMinute) {
                     pixelShiftX = Math.round((Math.random() * 2 - 1) * PIXEL_SHIFT_RADIUS);
                     pixelShiftY = Math.round((Math.random() * 2 - 1) * PIXEL_SHIFT_RADIUS);
@@ -473,7 +479,7 @@
         
         window.addEventListener('resize', resizeCanvas);
         
-        // Tastatur
+        // Keyboard shortcuts
         document.addEventListener('keydown', (e) => {
             if (e.key === 'f' || e.key === 'F') {
                 if (!document.fullscreenElement) {
@@ -493,7 +499,7 @@
             }
         });
         
-        // Touch
+        // Touch gestures
         document.addEventListener('touchstart', (e) => {
             if (e.target.closest('#settingsMenu')) return;
             
@@ -524,9 +530,15 @@
             }
         }, { passive: true });
         
-        // Settings Event-Listener
+        // Settings event listeners
         document.getElementById('closeSettings').addEventListener('click', () => {
             settingsMenu.classList.add('hidden');
+        });
+        
+        document.getElementById('resetSettings').addEventListener('click', () => {
+            Object.assign(CONFIG, DEFAULTS);
+            localStorage.removeItem('gradient2ClockSettings');
+            updateUI();
         });
         
         document.getElementById('gradientDirectionSelect').addEventListener('change', (e) => {
@@ -600,7 +612,7 @@
             saveSettings();
         });
         
-        // UI initialisieren
+        // Initialize UI
         function updateUI() {
             document.getElementById('gradientDirectionSelect').value = CONFIG.gradientDirection;
             document.getElementById('pulseFrequencySelect').value = CONFIG.pulseFrequency;
@@ -628,7 +640,7 @@
         resizeCanvas();
         animate();
         
-        console.log('Gradient2 Clock PWA gestartet');
+        console.log('Gradient2 Clock started');
     </script>
 </body>
 </html>
